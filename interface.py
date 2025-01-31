@@ -1,8 +1,33 @@
 import cmd
 from pathlib import Path
 from typing import Optional
-
 from persistent import tracking
+import functools
+from typing import Callable, TypeVar
+
+
+# Decorator:
+# Define a TypeVar for methods bound to CLI
+T = TypeVar("T", bound=Callable)
+
+
+def validate_tracking(function: T) -> T:
+	"""Decorator to ensure a valid tracking directory is loaded before running a command."""
+
+	@functools.wraps(function)  # Preserve function metadata
+	def wrapper(self, *args, **kwargs):
+		# Ensure self is an instance of CLI (runtime check)
+		if not isinstance(self, CLI):
+			raise TypeError(f"Expected 'self' to be instance of CLI, got {type(self).__name__}")
+
+		# Validate tracking DAO
+		if self._tracking_dao is None or not self._tracking_dao.is_valid():
+			print(f"Error: No valid tracking directory is loaded.")
+			return
+
+		return function(self, *args, **kwargs)
+
+	return wrapper
 
 
 class CLI(cmd.Cmd):
@@ -13,32 +38,26 @@ class CLI(cmd.Cmd):
 	def __init__(self):
 		super().__init__()
 		# Instance fields:
-		self.__tracking_dao: Optional[tracking.TrackingDao] = None
+		self._tracking_dao: Optional[tracking.TrackingDao] = None
 
 	# Instance methods:
-	def do_hello(self, arg):
-		print(f"Hello, {arg}!")
-
 	def do_load(self, arg: str):
-		self.__tracking_dao = tracking.get_tracking_directory(Path(arg))
+		self._tracking_dao = tracking.get_tracking_directory(Path(arg))
 
 		# If the function failed to load a valid tracking DAO, then exit the method.
-		if self.__tracking_dao is None:
+		if self._tracking_dao is None:
 			print(f"Failed to load the tracking for the directory at: {arg}")
 			return
 
 		# Otherwise, load the tracking resources onto the tracking DAO instance.
-		self.__tracking_dao.load()
+		self._tracking_dao.load()
 		print(f"Successfully loaded the tracking directory at location: {arg}")
 
+	@validate_tracking
 	def do_files(self, arg):
-		if self.__tracking_dao is None:
-			print(f"Error, the no tracking directory is loaded.")
-			return
-
 		# Output each file that is tracked.
 		print(f"Tracking files:")
-		for file in self.__tracking_dao.files:
+		for file in self._tracking_dao.files:
 			print(f"* {file}")
 
 	def do_init(self, arg):
@@ -49,44 +68,32 @@ class CLI(cmd.Cmd):
 			print(f"Error, failed to initialise directory at location: {Path(arg)}")
 			return
 
-		self.__tracking_dao = dao
+		self._tracking_dao = dao
 		print(f"Successfully initialised directory at location: {Path(arg)}")
 
+	@validate_tracking
 	def do_add(self, arg):
-		if self.__tracking_dao is None:
-			print(f"Error, no tracking directory is loaded.")
-			return
-
-		if self.__tracking_dao.add_tracking(arg) is False:
+		if self._tracking_dao.add_tracking(arg) is False:
 			print(f"Error, {arg} is an invalid file.")
 			return
 
-		self.__tracking_dao.save()
+		self._tracking_dao.save()
 		print(f"Successfully added the file {arg} to tracking.")
 
+	@validate_tracking
 	def do_check(self, arg):
-		if self.__tracking_dao is None:
-			print(f"Error, no tracking directory is loaded")
-			return
-
-		files: list[tracking.TrackedFile] = self.__tracking_dao.check()
+		files: list[tracking.TrackedFile] = self._tracking_dao.check()
 		print(f"The following files that have changed since their last backup:")
 		for file in files:
 			print(f"* {file}")
 
+	@validate_tracking
 	def do_backup(self, arg):
-		if self.__tracking_dao is None:
-			print(f"Error, no tracking directory is loaded")
-			return
+		self._tracking_dao.backup()
 
-		self.__tracking_dao.backup()
-
+	@validate_tracking
 	def do_restore(self, arg):
-		if self.__tracking_dao is None:
-			print(f"Error, no tracking directory is loaded")
-			return
-
-		if self.__tracking_dao.restore():
+		if self._tracking_dao.restore():
 			print(f"Successfully restored files.")
 			return
 

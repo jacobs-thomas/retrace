@@ -2,7 +2,6 @@ import json
 import os.path
 import time
 from dataclasses import dataclass, asdict
-import hashlib
 import shutil
 from pathlib import Path, PurePath
 from typing import Tuple, Optional
@@ -35,6 +34,9 @@ class TrackingDAO:
 	tracking_file: Path
 
 	# Methods:
+	def is_valid(self) -> bool:
+		return self.directory.exists() and self.directory.is_dir() and self.tracking_file.exists() and self.tracking_file.is_file()
+
 	def backup(self) -> bool:
 		if not self.tracking_file.exists() or not self.tracking_file.is_file() or not self.tracking_directory.exists():
 			return False
