@@ -5,7 +5,6 @@ from dataclasses import dataclass, asdict
 import shutil
 from pathlib import Path, PurePath
 from typing import Tuple, Optional
-
 import tracked_file
 from tracked_file import TrackedFile, try_create_tracked_file, __PROJECT_DIRECTORY, __BACKUP_DIRECTORY, calculate_file_hash
 

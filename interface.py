@@ -5,7 +5,6 @@ from persistent import tracking
 import functools
 from typing import Callable, TypeVar
 
-
 # Decorator:
 # Define a TypeVar for methods bound to CLI
 T = TypeVar("T", bound=Callable)
@@ -17,7 +16,7 @@ def validate_tracking(function: T) -> T:
 	@functools.wraps(function)  # Preserve function metadata
 	def wrapper(self, *args, **kwargs):
 		# Ensure self is an instance of CLI (runtime check)
-		if not isinstance(self, CLI):
+		if not isinstance(self, RetraceCLI):
 			raise TypeError(f"Expected 'self' to be instance of CLI, got {type(self).__name__}")
 
 		# Validate tracking DAO
@@ -30,7 +29,11 @@ def validate_tracking(function: T) -> T:
 	return wrapper
 
 
-class CLI(cmd.Cmd):
+class RetraceCLI(cmd.Cmd):
+	"""
+	An entry point into the retrace command line interface.
+	"""
+
 	# Class fields:
 	prompt = "ft> "
 
@@ -42,6 +45,13 @@ class CLI(cmd.Cmd):
 
 	# Instance methods:
 	def do_load(self, arg: str):
+		"""
+		Hello
+
+		:param arg:
+		:return:
+		"""
+
 		self._tracking_dao = tracking.get_tracking_directory(Path(arg))
 
 		# If the function failed to load a valid tracking DAO, then exit the method.
@@ -100,5 +110,6 @@ class CLI(cmd.Cmd):
 		print("fError, could not restore the files.")
 
 
+# Begin the program.
 if __name__ == "__main__":
-	CLI().cmdloop()
+	RetraceCLI().cmdloop()
