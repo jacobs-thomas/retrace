@@ -27,20 +27,26 @@ TRACKING_FILENAME: str = "tracking_files.json"
 @dataclass
 class TrackingDAO:
 	# Instance fields:
-	files: list[TrackedFile]
+	files: dict[str, TrackedFile]
 	directory: Path
 	tracking_directory: Path
 	tracking_file: Path
 
 	# Methods:
 	def is_valid(self) -> bool:
+		"""
+		A tracking DAO is considered valid when the appropriate tracking directories and files are valid and present.
+
+		:return: True when the metadata (.tracking) directory and file (tracking_files.json) exist, False if either resource do not exist.
+		"""
+
 		return self.directory.exists() and self.directory.is_dir() and self.tracking_file.exists() and self.tracking_file.is_file()
 
 	def backup(self) -> bool:
-		if not self.tracking_file.exists() or not self.tracking_file.is_file() or not self.tracking_directory.exists():
+		if not self.is_valid():
 			return False
 
-		for file in self.files:
+		for file in self.files.values():
 			location: Path = Path(file.path)
 			backup_location: Path = Path(file.backup_path)
 
@@ -56,10 +62,10 @@ class TrackingDAO:
 		return True
 
 	def restore(self) -> bool:
-		if not self.tracking_directory.exists() or self.tracking_directory.is_file():
+		if not self.is_valid():
 			return False
 
-		for file in self.files:
+		for file in self.files.values():
 			tracked_file.restore_file(file)
 
 		return True
@@ -76,12 +82,12 @@ class TrackingDAO:
 		if tracked_file is None:
 			return False
 
-		self.files.append(tracked_file)
+		self.files[filename] = tracked_file
 
 	def save(self):
 		try:
 			with open(self.tracking_file.absolute().as_posix(), "w") as file:
-				json.dump([asdict(i) for i in self.files], file, indent=4)
+				json.dump({key: asdict(value) for key, value in self.files.items()}, file, indent=4)
 			return True
 
 		except Exception as exception:
@@ -90,7 +96,7 @@ class TrackingDAO:
 	def check(self) -> list[TrackedFile]:
 		results: list[TrackedFile] = []
 
-		for file in self.files:
+		for file in self.files.values():
 			location: Path = Path(file.path)
 			# If the path to the file is invalid, then continue as the file cannot be checked.
 			if not location.exists() or location.is_dir():
@@ -107,7 +113,7 @@ class TrackingDAO:
 		try:
 			with open(self.tracking_file.absolute().as_posix(), "r") as file:
 				data = json.load(file)  # Load JSON data as a list of dictionaries.
-			self.files = [TrackedFile(**entry) for entry in data]
+			self.files = {key: TrackedFile(**value) for key, value in data.items()}
 
 		except Exception as exception:
 			return
@@ -128,7 +134,7 @@ def get_tracking_directory(directory: Path) -> Optional[TrackingDAO]:
 		os.mkdir(tracking_file_directory)
 
 	return TrackingDAO(
-		files=[],
+		files={},
 		directory=directory,
 		tracking_directory=tracking_directory,
 		tracking_file=tracking_file_directory
@@ -155,7 +161,7 @@ def initialise_tracking(directory: Path) -> Optional[TrackingDAO]:
 			return None
 
 		return TrackingDAO(
-			files=[],
+			files={},
 			directory=directory,
 			tracking_directory=metadata_directory,
 			tracking_file=metadata_file
