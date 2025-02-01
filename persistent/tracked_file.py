@@ -9,7 +9,7 @@ from typing import Optional
 
 # Constants:
 __FOUR_KILOBYTES: int = 4096
-__PROJECT_DIRECTORY: str = "\\Users\\tomja\\source\\repos\\file_control\\file_control"
+__PROJECT_DIRECTORY: str = "\\Users\\tomja\\source\\repos\\retrace\\retrace"
 __BACKUP_DIRECTORY: str = __PROJECT_DIRECTORY + "\\.tracking"
 
 

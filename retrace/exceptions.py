@@ -1,8 +1,5 @@
 from enum import Enum
 
-from tracked_file import TrackedFile
-from persistent.tracking import TrackingDAO
-
 
 # Enumerations:
 class TrackingDAOErrorCode(Enum):

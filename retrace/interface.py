@@ -1,15 +1,12 @@
 import cmd
 from pathlib import Path
-from shlex import shlex
 from typing import Optional
-
-import exceptions
+from retrace import exceptions
 from persistent import tracking
 import functools
 from typing import Callable, TypeVar
 
 # Decorator:
-# Define a TypeVar for methods bound to CLI
 T = TypeVar("T", bound=Callable)
 
 
@@ -70,8 +67,8 @@ class RetraceCLI(cmd.Cmd):
 	def do_files(self, arg):
 		# Output each file that is tracked.
 		print(f"Tracking files:")
-		for file in self._tracking_dao.files:
-			print(f"* {file}")
+		for file in self._tracking_dao.files.values():
+			print(f"* {file.filename}")
 
 	def do_init(self, arg):
 		dao: Optional[tracking.TrackingDAO] = tracking.initialise_tracking(Path(arg))
@@ -134,8 +131,3 @@ class RetraceCLI(cmd.Cmd):
 			return
 
 		print("fError, could not restore the files.")
-
-
-# Begin the program.
-if __name__ == "__main__":
-	RetraceCLI().cmdloop()
