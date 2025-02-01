@@ -118,6 +118,11 @@ class TrackingDAO:
 		except Exception as exception:
 			return
 
+	def check_file(self, filename: str) -> bool:
+		if not self.files.__contains__(filename):
+			return False
+		return self.files[filename].hash == calculate_file_hash(self.files[filename].path)
+
 
 def get_tracking_directory(directory: Path) -> Optional[TrackingDAO]:
 	if not directory.exists() or directory.is_file():

@@ -1,5 +1,6 @@
 import cmd
 from pathlib import Path
+from shlex import shlex
 from typing import Optional
 from persistent import tracking
 import functools
@@ -96,6 +97,20 @@ class RetraceCLI(cmd.Cmd):
 		print(f"The following files that have changed since their last backup:")
 		for file in files:
 			print(f"* {file}")
+
+	@validate_tracking
+	def do_check_file(self, arg):
+		args = str.split(arg)  # Split arguments safely
+
+		if len(args) == 0:
+			self.do_check(arg)
+			return
+
+		result: bool = self._tracking_dao.check_file(args[0])
+		if result is True:
+			print(f"The file: {args[0]} has changed since its last backup.")
+			return
+		print(f"The file: {args[0]} has not changed since its last backup.")
 
 	@validate_tracking
 	def do_backup(self, arg):
