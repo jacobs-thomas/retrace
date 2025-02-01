@@ -1,6 +1,8 @@
 import cmd
 from pathlib import Path
 from typing import Optional
+
+import retrace.exceptions
 from retrace import exceptions
 from persistent import tracking
 import functools
@@ -75,20 +77,21 @@ class RetraceCLI(cmd.Cmd):
 
 		# If the function returns nothing, then the initialisation failed and no tracking directory has been created.
 		if dao is None:
-			print(f"Error, failed to initialise directory at location: {Path(arg)}")
+			print(f"Error, failed to initialise directory at location: {Path(arg)}.")
 			return
 
 		self._tracking_dao = dao
-		print(f"Successfully initialised directory at location: {Path(arg)}")
+		print(f"Successfully initialised directory at location: {Path(arg)}.")
 
 	@validate_tracking
-	def do_add(self, arg):
-		if self._tracking_dao.add_tracking(arg) is False:
-			print(f"Error, {arg} is an invalid file.")
-			return
+	def do_track(self, arg):
+		try:
+			file = self._tracking_dao.track(arg)
+			self._tracking_dao.save()
+			print(f"Successfully added tracking for the file: {arg}.")
 
-		self._tracking_dao.save()
-		print(f"Successfully added the file {arg} to tracking.")
+		except retrace.exceptions.TrackingDAOException as exception:
+			print(f"Error tracking file: {exception}.")
 
 	@validate_tracking
 	def do_check(self, arg):

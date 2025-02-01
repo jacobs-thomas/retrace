@@ -60,19 +60,44 @@ class TrackingDAO:
 
 		return True
 
-	def add_tracking(self, filename: str) -> bool:
+	def track(self, filename: str) -> TrackedFile:
+		"""
+		Adds tracking to an existing file, adding the file to the list of tracked files upon success.
+
+		This method attempts to add a file, specified by `filename`, to the list of tracked files. It first
+		verifies that the file exists and is not a directory. If these conditions are met, the file is
+		processed and tracked. If any validation fails or the tracking process encounters an error, an exception
+		is raised.
+
+		:param filename: The name of the file to be tracked.
+		:type filename: str.
+
+		:return: Returns a `TrackedFile` object that represents the tracked file.
+		:rtype: TrackedFile.
+
+		:raises TrackingDAOException: If the file does not exist, is a directory, or if there was a failure in
+		creating a tracked file.
+		:raises TrackingDAOErrorCode.INVALID_TRACKING_FILE: Error code raised if the file is not valid for tracking.
+		"""
+
+		# If the file is already tracked, simply return a reference to the tracked file instance.
+		if self.files.__contains__(filename):
+			return self.files[filename]
+
+		# Build a reference to the full path leading to the parametrised file.
 		filepath: Path = self.directory.joinpath(filename)
 
 		# If the file does not exist, or the file is actually a directory, then return false.
 		if not filepath.exists() or filepath.is_dir():
-			return False
+			raise exceptions.TrackingDAOException(f"The file {filename} does not exist as a valid file for the location: {filepath.absolute().as_posix()}.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE)
 
 		# Otherwise, add the file to the list of tracked files.
-		tracked_file: TrackedFile = try_create_tracked_file(filepath, self.tracking_directory)
+		file: TrackedFile = try_create_tracked_file(filepath, self.tracking_directory)
 		if tracked_file is None:
-			return False
+			raise exceptions.TrackingDAOException(f"Failed to track the file: {filename}.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE)
 
 		self.files[filename] = tracked_file
+		return tracked_file
 
 	def save(self):
 		try:
@@ -82,22 +107,6 @@ class TrackingDAO:
 
 		except Exception as exception:
 			return False
-
-	def check(self) -> list[TrackedFile]:
-		results: list[TrackedFile] = []
-
-		for file in self.files.values():
-			location: Path = Path(file.path)
-			# If the path to the file is invalid, then continue as the file cannot be checked.
-			if not location.exists() or location.is_dir():
-				continue
-
-			if file.hash != calculate_file_hash(location.absolute().as_posix()):
-				results.append(file)
-
-			return results
-
-		return results
 
 	def load(self) -> None:
 		try:
@@ -109,8 +118,26 @@ class TrackingDAO:
 			return
 
 	def matches_backup(self, filename: str) -> bool:
+		"""
+		Verifies if the file specified by the given filename matches the identity of its backup. If the file
+		does not match the identity of its backup file, this means the file has changed since the previous backup.
+
+		This method checks whether the file exists in the list of tracked files and if its hash matches the
+		hash of the backup file stored in the tracking data. If the file is not tracked or the hash does
+		not match, an exception is raised.
+
+		:param filename: The name of the file to check for matching hash. It must be a tracked file.
+		:type filename: str.
+
+		:return: Returns True if the file's hash matches the stored hash for its backup.
+		:rtype: bool.
+
+		:raises TrackingDAOException: If the file is not found in the list of tracked files or if the hashes do not match.
+		:raises TrackingDAOErrorCode.INVALID_TRACKING_FILE: If the file specified by `filename` is not tracked.
+		"""
+
 		if not self.files.__contains__(filename):
-			raise exceptions.TrackingDAOException(f"Error: the file: {filename}, is not tracked.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE)
+			raise exceptions.TrackingDAOException(f"The file: {filename}, is not tracked.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE)
 		return self.files[filename].hash == calculate_file_hash(self.files[filename].path)
 
 
