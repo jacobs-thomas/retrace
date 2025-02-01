@@ -7,21 +7,11 @@ from pathlib import Path, PurePath
 from typing import Tuple, Optional
 import tracked_file
 from tracked_file import TrackedFile, try_create_tracked_file, __PROJECT_DIRECTORY, __BACKUP_DIRECTORY, calculate_file_hash
+import exceptions
 
 # Constants:
 METADATA_PATH_EXTENSION: str = ".tracking"
 TRACKING_FILENAME: str = "tracking_files.json"
-
-"""
-
-	Example JSON data-structure layout.
-	
-	{
-		files: []
-	}
-
-
-"""
 
 
 @dataclass
@@ -109,18 +99,18 @@ class TrackingDAO:
 
 		return results
 
-	def load(self):
+	def load(self) -> None:
 		try:
 			with open(self.tracking_file.absolute().as_posix(), "r") as file:
-				data = json.load(file)  # Load JSON data as a list of dictionaries.
+				data = json.load(file)
 			self.files = {key: TrackedFile(**value) for key, value in data.items()}
 
 		except Exception as exception:
 			return
 
-	def check_file(self, filename: str) -> bool:
+	def matches_backup(self, filename: str) -> bool:
 		if not self.files.__contains__(filename):
-			return False
+			raise exceptions.TrackingDAOException(f"Error: the file: {filename}, is not tracked.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE)
 		return self.files[filename].hash == calculate_file_hash(self.files[filename].path)
 
 
@@ -186,4 +176,3 @@ def insert(file: TrackedFile, tracking_directory_path: Path) -> bool:
 
 	with open(tracking_file.absolute().as_posix(), "w") as write:
 		write.write(file.to_json())
-

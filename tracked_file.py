@@ -16,6 +16,7 @@ __BACKUP_DIRECTORY: str = __PROJECT_DIRECTORY + "\\.tracking"
 @dataclass
 class TrackedFile:
 	# Instance fields:
+	filename: str
 	path: str
 	hash: str
 	size: int
@@ -30,15 +31,6 @@ class TrackedFile:
 	@staticmethod
 	def from_json(json_data):
 		return TrackedFile(**json.loads(json_data))
-
-
-example_file: TrackedFile = TrackedFile(
-	path="example.txt",
-	hash="9a0364b9e99bb480dd25e1f0284c8555",
-	size=1024,
-	last_modified="2025-01-28T12:34:56",
-	backup_path=".fs_tracker/backup/example.bak"
-)
 
 
 # Functions:
@@ -93,7 +85,8 @@ def try_create_tracked_file(filepath: Path, backup_directory: Path) -> Optional[
 		hash=calculate_file_hash(filepath),
 		size=filepath.stat().st_size,
 		last_modified=time.ctime(filepath.stat().st_mtime),
-		backup_path=backup_directory.absolute().as_posix()
+		backup_path=backup_directory.absolute().as_posix(),
+		filename=filepath.name
 	)
 
 	return result

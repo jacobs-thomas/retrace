@@ -2,6 +2,8 @@ import cmd
 from pathlib import Path
 from shlex import shlex
 from typing import Optional
+
+import exceptions
 from persistent import tracking
 import functools
 from typing import Callable, TypeVar
@@ -100,17 +102,26 @@ class RetraceCLI(cmd.Cmd):
 
 	@validate_tracking
 	def do_check_file(self, arg):
-		args = str.split(arg)  # Split arguments safely
+		# Split arguments safely and check if we have a file argument.
+		args = arg.split()
 
-		if len(args) == 0:
-			self.do_check(arg)
-			return
+		if not args:
+			self.do_check_with_no_args(arg)  # Handle case where no file argument is provided.
+			return self.do_check(arg)
 
-		result: bool = self._tracking_dao.check_file(args[0])
-		if result is True:
-			print(f"The file: {args[0]} has changed since its last backup.")
-			return
-		print(f"The file: {args[0]} has not changed since its last backup.")
+		try:
+			# Assume matches_backup returns a boolean indicating if the file is up-to-date.
+			result = self._tracking_dao.matches_backup(args[0])
+
+			# Provide more readable output depending on the result.
+			if result:
+				print(f"The file: {args[0]} has not changed since its last backup.")
+			else:
+				print(f"The file: {args[0]} has changed since its last backup.")
+
+		except exceptions.TrackingDAOException as exception:
+			# Handle exceptions more gracefully with a clear message.
+			print(f"Error checking file '{args[0]}': {exception}")
 
 	@validate_tracking
 	def do_backup(self, arg):
