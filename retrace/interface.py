@@ -125,7 +125,23 @@ class RetraceCLI(cmd.Cmd):
 
 	@validate_tracking
 	def do_backup(self, arg):
-		self._tracking_dao.backup()
+		# Split arguments safely and check if we have a file argument.
+		arguments = arg.split()
+
+		if not arguments:
+			print(f"Error: no file was specified for backup.")
+			return
+
+		try:
+			self._tracking_dao.backup(arguments[0])
+			print(f"Successfully produced a backup for the file: {arguments[0]}")
+		except exceptions.TrackingDAOException as exception:
+			print(f"Error, failed to backup file: {exception}.")
+
+
+
+
+
 
 	@validate_tracking
 	def do_restore(self, arg):

@@ -5,6 +5,7 @@ from enum import Enum
 class TrackingDAOErrorCode(Enum):
 	INVALID_TRACKING_DIRECTORY = 0,
 	INVALID_TRACKING_FILE = 1,
+	UNTRACKED_FILE = 2
 
 
 # Exceptions:
