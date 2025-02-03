@@ -79,7 +79,7 @@ class TrackingDAO:
 		for filename in filenames:
 			# If a specified file is not tracked, raise an untracked file exception. We could simply ignore restore the file, however, it's best to be explicit
 			# about why the file could not be restored, so the issue can be more easily resolved.
-			if self.files.__contains__(filename):
+			if not self.files.__contains__(filename):
 				raise exceptions.TrackingDAOException(f"Attempted to restore an untracked file ({filename}).", exceptions.TrackingDAOErrorCode.UNTRACKED_FILE)
 
 			# If the tracked file is successfully restored, add it to the list of tracked files.

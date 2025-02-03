@@ -70,8 +70,12 @@ def restore_file(tracked_file: TrackedFile) -> bool:
 	if not os.path.exists(tracked_file.backup_path):
 		return False
 
-	shutil.copy2(tracked_file.backup_path, tracked_file.path)
-	return True
+	try:
+		shutil.copy2(tracked_file.backup_path, tracked_file.path)
+		return True
+
+	except Exception as exception:
+		return False
 
 
 def try_create_tracked_file(filepath: Path, backup_directory: Path) -> Optional[TrackedFile]:
