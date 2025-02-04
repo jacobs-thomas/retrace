@@ -32,42 +32,55 @@ class TrackingDAO:
 
 		return self.directory.exists() and self.directory.is_dir() and self.tracking_file.exists() and self.tracking_file.is_file()
 
-	def backup(self, filename: str) -> bool:
+	def backup(self, *filenames: str) -> list[TrackedFile]:
+		"""
+		Back up specified tracked files by copying them to their designated backup locations.
+d
+		:param filenames: The names of the files that you wish to backup.
+		:type filenames: *str.
+
+		:return: A list representing the tracked files, where instigating a backup was successful.
+		:rtype: list[TrackedFile].
+
+		:raises TrackingDAOException: If the tracking directory is invalid or a file is untracked.
+		:raises TrackingDAOException: If the file path is invalid for backup.
+		"""
+
 		if not self.is_valid():
-			raise exceptions.TrackingDAOException(f"Backup for the file: {filename} could not be complete as the tracking directory is invalid", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_DIRECTORY)
+			raise exceptions.TrackingDAOException(
+				"Attempted to backup files from an untracked (invalid) directory.",
+				exceptions.TrackingDAOErrorCode.INVALID_TRACKING_DIRECTORY
+			)
 
-		if not self.files.__contains__(filename):
-			raise exceptions.TrackingDAOException(f"Backup could not be complete for the file: {filename} could not be complete as it is not tracked.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_DIRECTORY)
+		# Initialise an empty list, which the method will return as reference to the files successfully backed up.
+		backup_files: list[TrackedFile] = []
 
-		location: Path = Path(self.files[filename].path)
-		backup_location: Path = Path(self.files[filename].backup_path)
+		for filename in filenames:
+			# Retrieve file reference safely.
+			file = self.files.get(filename)
+			if file is None:
+				raise exceptions.TrackingDAOException(
+					f"Attempted to backup the untracked file: {filename}.",
+					exceptions.TrackingDAOErrorCode.INVALID_TRACKING_DIRECTORY
+				)
 
-		if not location.exists() or location.is_dir() or not backup_location.exists() or backup_location.is_file():
-			raise exceptions.TrackingDAOException(f"Backup could not be complete for the file: {filename} could not be complete as it is not tracked.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE)
+			location, backup_location = Path(file.path), Path(file.backup_path)
 
-		# Produce a copy of the file (including the metadata) using the shell utilities' module.
-		shutil.copy2(location.absolute().as_posix(), backup_location.absolute().as_posix())
-		self.files[filename].hash = calculate_file_hash(location.absolute().as_posix())
-		self.files[filename].last_modified = time.ctime(location.stat().st_mtime)
+			# Validate file existence and type.
+			if not location.exists() or location.is_dir() or not backup_location.exists() and backup_location.is_dir():
+				raise exceptions.TrackingDAOException(
+					f"Attempted to backup the invalid file: {filename}.",
+					exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE
+				)
 
-		"""
-		Backup all:
-		
-		for file in self.files.values():
-			location: Path = Path(file.path)
-			backup_location: Path = Path(file.backup_path)
+			# Perform the backup operation.
+			shutil.copy2(location, backup_location)
+			file.hash = calculate_file_hash(location)  # Hash calculation.
+			file.last_modified = time.ctime(location.stat().st_mtime)  # Update timestamp.
 
-			if not location.exists() or location.is_dir() or not backup_location.exists() or backup_location.is_file():
-				continue
+			backup_files.append(file)
 
-			# Produce a copy of the file (including the metadata) using the shell utilities' module.
-			shutil.copy2(file.path, file.backup_path)
-			file.hash = calculate_file_hash(file.path)
-			file.last_modified = time.ctime(location.stat().st_mtime)
-		"""
-
-		self.save()
-		return True
+		return backup_files
 
 	def restore(self, *filenames: str) -> list[TrackedFile]:
 		if not self.is_valid():
@@ -117,7 +130,8 @@ class TrackingDAO:
 
 		# If the file does not exist, or the file is actually a directory, then return false.
 		if not filepath.exists() or filepath.is_dir():
-			raise exceptions.TrackingDAOException(f"The file {filename} does not exist as a valid file for the location: {filepath.absolute().as_posix()}.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE)
+			raise exceptions.TrackingDAOException(f"The file {filename} does not exist as a valid file for the location: {filepath.absolute().as_posix()}.",
+			                                      exceptions.TrackingDAOErrorCode.INVALID_TRACKING_FILE)
 
 		# Otherwise, add the file to the list of tracked files.
 		file: TrackedFile = try_create_tracked_file(filepath, self.tracking_directory)

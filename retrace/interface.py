@@ -133,8 +133,11 @@ class RetraceCLI(cmd.Cmd):
 			return
 
 		try:
-			self._tracking_dao.backup(arguments[0])
-			print(f"Successfully produced a backup for the file: {arguments[0]}")
+			files: list[tracking.TrackedFile] = self._tracking_dao.backup(*arguments)
+			print(f"Successfully produced a backup for the file(s):")
+			for file in files:
+				print(f"* {file.filename}.")
+
 		except exceptions.TrackingDAOException as exception:
 			print(f"Error, failed to backup file: {exception}.")
 

@@ -62,7 +62,6 @@ def backup_file(tracked_file: TrackedFile) -> bool:
 			return True
 
 	except Exception as exception:
-		print(f"Error backing up file: {exception}")
 		return False
 
 
