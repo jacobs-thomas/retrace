@@ -4,8 +4,8 @@ import os
 print("Hello, World!")
 
 # Constants:
-PROJECT_DIRECTORY: str = "\\Users\\tomja\\source\\repos\\file_control\\file_control"
-HIDDEN_DIR_NAME: str = ".tracking"
+PROJECT_DIRECTORY: str = "\\Users\\tomja\\source\\repos\\retrace\\retrace"
+HIDDEN_DIR_NAME: str = "../.tracking"
 
 # Functions:
 def create_repository(directory_path: str):
