@@ -28,6 +28,7 @@ class TrackingDAO:
 		A tracking DAO is considered valid when the appropriate tracking directories and files are valid and present.
 
 		:return: True when the metadata (.tracking) directory and file (tracking_files.json) exist, False if either resource do not exist.
+		:rtype: bool.
 		"""
 
 		return self.directory.exists() and self.directory.is_dir() and self.tracking_file.exists() and self.tracking_file.is_file()
