@@ -35,7 +35,7 @@ class TrackingDAO:
 	def backup(self, *filenames: str) -> list[TrackedFile]:
 		"""
 		Back up specified tracked files by copying them to their designated backup locations.
-d
+
 		:param filenames: The names of the files that you wish to backup.
 		:type filenames: *str.
 
@@ -83,21 +83,48 @@ d
 		return backup_files
 
 	def restore(self, *filenames: str) -> list[TrackedFile]:
+		"""
+		Restores the specified tracked files from the tracking directory.
+
+		This method attempts to restore one or more files specified by `filenames`. It first verifies that
+		the tracking directory is valid. Then, it checks whether each specified file is tracked. If a file
+		is tracked, it is restored and added to the list of successfully restored files. If any validation
+		fails, an exception is raised.
+
+		:param filenames: One or more filenames to restore.
+		:type filenames: str.
+
+		:return: A list of `TrackedFile` objects representing the successfully restored files.
+		:rtype: list[TrackedFile].
+
+		:raises TrackingDAOException: If the tracking directory is invalid or if an untracked file is specified.
+		:raises TrackingDAOErrorCode.INVALID_TRACKING_DIRECTORY: Raised if the tracking directory is invalid.
+		:raises TrackingDAOErrorCode.UNTRACKED_FILE: Raised if an attempt is made to restore an untracked file.
+		"""
+
 		if not self.is_valid():
-			raise exceptions.TrackingDAOException("Invalid tracking directory.", exceptions.TrackingDAOErrorCode.INVALID_TRACKING_DIRECTORY)
+			raise exceptions.TrackingDAOException(
+				"Attempted to restore file(s) from an invalid tracking directory.",
+				exceptions.TrackingDAOErrorCode.INVALID_TRACKING_DIRECTORY
+			)
 
 		# Initialise a list of tracked files to maintain a record of the files that are successfully restored.
 		restored_files: list[TrackedFile] = []
 
 		for filename in filenames:
-			# If a specified file is not tracked, raise an untracked file exception. We could simply ignore restore the file, however, it's best to be explicit
-			# about why the file could not be restored, so the issue can be more easily resolved.
-			if not self.files.__contains__(filename):
-				raise exceptions.TrackingDAOException(f"Attempted to restore an untracked file ({filename}).", exceptions.TrackingDAOErrorCode.UNTRACKED_FILE)
+			# Retrieve the tracked file from the tracking directory.
+			file: TrackedFile = self.files.get(filename)
 
-			# If the tracked file is successfully restored, add it to the list of tracked files.
-			if tracked_file.restore_file(self.files[filename]):
-				restored_files.append(self.files[filename])
+			# If the file is not being tracked, raise an exception to indicate the issue.
+			if file is None:
+				raise exceptions.TrackingDAOException(
+					f"Attempted to restore an untracked file ({filename}).",
+					exceptions.TrackingDAOErrorCode.UNTRACKED_FILE
+				)
+
+			# If the tracked file is successfully restored, add it to the restored files list.
+			if tracked_file.restore_file(file):
+				restored_files.append(file)
 
 		return restored_files
 
